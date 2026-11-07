@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>早读语音评测系统</title>
+<style>
+  :root{--bg:#F7F7F5;--card:#fff;--line:#E5E3DE;--text:#2C2C2A;--muted:#6B6A65;
+    --accent:#0F6E56;--soft:#E1F5EE;--warn:#A32D2D;--warnsoft:#FCEBEB;--amber:#BA7517}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif}
+  .wrap{max-width:520px;margin:0 auto;padding:18px 16px 56px}
+  h1{font-size:17px;font-weight:600;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
+  .mode{font-size:12px;padding:8px 11px;border-radius:8px;margin-bottom:12px;
+    overflow-wrap:anywhere;line-height:1.5}
+  .mode.demo{background:#FAEEDA;color:#854F0B}
+  .mode.live{background:var(--soft);color:var(--accent)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tab{flex:1;padding:9px 0;text-align:center;border:1px solid var(--line);background:var(--card);
+    border-radius:9px;color:var(--muted);cursor:pointer;font-size:13px}
+  .tab.on{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:12px}
+  .card h2{font-size:14px;font-weight:600;margin:0 0 10px}
+  .card h3{font-size:13px;font-weight:600;margin:14px 0 6px}
+  .hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+  label{display:block;font-size:12px;color:var(--muted);margin:9px 0 4px}
+  input[type=text],input[type=time],input[type=password],input[type=number],textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;
+    color:var(--text);font-size:14px;font-family:inherit}
+  textarea{min-height:70px;resize:vertical;line-height:1.6}
+  .row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+  button.primary{width:100%;padding:11px;border:0;border-radius:9px;background:var(--accent);
+    color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+  button.ghost{width:100%;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff;
+    color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;margin-top:8px}
+  button.mini{width:auto;padding:7px 12px;border:1px solid var(--line);border-radius:8px;
+    background:#fff;color:var(--text);font-size:12px;font-family:inherit;cursor:pointer;margin:6px 6px 0 0}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .material{background:var(--soft);border-radius:9px;padding:12px;margin:4px 0 8px}
+  .material .txt{font-size:17px}.material .ipa{font-size:13px;color:var(--accent);
+    font-family:Georgia,"Arial Unicode MS",serif;margin-top:3px}
+  .notice{background:#F1EFE8;border-radius:8px;padding:9px 11px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .notice.warn{background:var(--warnsoft);color:var(--warn)}
+  .timer{font-size:22px;font-variant-numeric:tabular-nums;margin:6px 0 0;text-align:center}
+  .recdot{width:12px;height:12px;border-radius:50%;background:var(--warn);display:inline-block;
+    vertical-align:middle;margin-right:5px}
+  audio{width:100%;margin-top:9px;height:36px}
+  .fileline{font-size:12px;color:var(--muted);margin-top:7px;word-break:break-all}
+  .grid7{display:flex;gap:5px;margin-top:8px}
+  .grid7 .d{flex:1;text-align:center;border:1px solid var(--line);border-radius:7px;
+    padding:5px 0;font-size:11px;color:var(--muted)}
+  .grid7 .d.done{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px}
+  th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:500}
+  .pill{display:inline-block;padding:1px 6px;border-radius:20px;font-size:10px}
+  .pill.ok{background:var(--soft);color:var(--accent)}.pill.no{background:#F1EFE8;color:var(--muted)}
+  .log{background:#F7F7F5;border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    font-size:12px;color:var(--muted);min-height:38px;max-height:150px;overflow:auto;white-space:pre-wrap}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);top:14px;background:#2C2C2A;color:#fff;
+    padding:9px 15px;border-radius:8px;font-size:13px;z-index:9;display:none;max-width:88%}
+  .hidden{display:none}
+  .sep{height:1px;background:var(--line);margin:14px 0}
+  .sublist{display:flex;flex-direction:column;gap:8px;margin:4px 0 8px}
+  .subitem{border:1px solid var(--line);border-radius:9px;padding:9px 10px;background:#fff}
+  .subitem .top{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .subitem .who{font-weight:600;font-size:13px}
+  .subitem .when{color:var(--muted);font-size:11.5px}
+  .subitem .sc{margin-left:auto;font-weight:600;font-size:14px}
+  .subitem .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .subitem .acts button{font-size:12px;padding:5px 9px;margin:0}
+  .subitem .cmt{font-size:12px;color:#185FA5;background:#EAF3FF;border-radius:6px;
+    padding:5px 8px;margin-top:6px;white-space:pre-wrap}
+  .subitem audio{width:100%;margin-top:6px}
+  .pager{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-top:6px}
+  .pager button{margin:0;font-size:12px;padding:6px 12px}
+  .pager button:disabled{opacity:.45}
+  .subrow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+  .subrow>.qbox{flex:1 1 150px;min-width:0}
+  select#subSize{width:auto;padding:7px 8px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;font-size:13px;color:var(--text)}
+  .actrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+  .actrow button{font-size:12px;padding:6px 10px;margin:0;flex:0 0 auto}
+  .actrow .hint{margin:0 4px}
+  @media (max-width:430px){
+    .subrow>.qbox{flex:1 1 100%}
+    .subrow>div:nth-child(2){flex:1 1 100%}
+    select#subSize{width:100%}
+  }
+  a{color:#185FA5}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<div class="wrap">
+  <h1>早读语音评测系统</h1>
+  <p class="sub" id="headerSub">正在连接本地服务…</p>
+  <div class="mode demo" id="modeBar">正在读取运行状态…</div>
+  <div class="mode demo" id="identityBar">身份未确认 · 请在第 1 步填写序号和姓名并点「确认」</div>
+
+  <div class="tabs" id="tabsBar">
+    <div class="tab on" id="tabStu" onclick="switchTab('stu')">学员端</div>
+    <div class="tab" id="tabTea" onclick="switchTab('tea')">教师端</div>
+  </div>
+
+  <!-- 学员端 -->
+  <div id="viewStu">
+    <div class="card">
+      <h2>1 · 确认身份</h2>
+      <div id="profileShow" class="hidden">
+        <div id="profileText"></div>
+        <button class="ghost" onclick="resetProfile()">切换学员</button>
+      </div>
+      <div id="profileForm">
+        <div class="row">
+          <div><label>序号</label><input type="text" id="stuNo" placeholder="如 01" inputmode="numeric"></div>
+          <div><label>姓名</label><input type="text" id="stuName" placeholder="如 张三"></div>
+        </div>
+        <div style="margin-top:10px"><button class="primary" onclick="saveProfile()">确认</button></div>
+        <p class="hint">首次填写后本机记住；名单由教师端维护，序号不在名单内会被服务端拦截。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · 今日材料与示范读音</h2>
+      <div class="material"><div class="txt" id="matText"></div><div class="ipa" id="matIpa"></div></div>
+      <audio id="demoAudio" controls class="hidden"></audio>
+      <button class="ghost" onclick="speakDemo()">用浏览器语音朗读</button>
+      <p class="hint" id="demoHint">示范音由本机语音合成生成，请教师核对标准读音。</p>
+    </div>
+
+    <div class="card">
+      <h2>3 · 提交跟读语音</h2>
+      <div class="notice warn hidden" id="closedNote">今日已截卡，提交通道关闭，需要补交请联系老师。</div>
+      <div class="notice warn hidden" id="micNote"></div>
+      <div class="timer" id="timer">00:00</div>
+      <p class="hint" id="recState" style="text-align:center">录音或直接选择语音 / 视频文件</p>
+      <div style="margin-top:10px"><button class="primary" id="recBtn" onclick="toggleRec()">开始录音</button></div>
+      <button class="ghost" id="uploadBtn" onclick="document.getElementById('fileInput').click()">选择语音 / 视频文件（推荐）</button>
+      <input type="file" id="fileInput" accept="audio/*,video/*" class="hidden" onchange="onFile(event)">
+      <button class="ghost" id="captureBtn" onclick="document.getElementById('captureInput').click()">手机直接录一段（调用系统录音）</button>
+      <input type="file" id="captureInput" accept="audio/*" capture="microphone" class="hidden" onchange="onFile(event)">
+      <div class="fileline" id="fileLine"></div>
+      <audio id="preview" controls class="hidden"></audio>
+      <div style="margin-top:10px"><button class="primary" id="submitBtn" disabled onclick="submitAudio()">提交今日跟读</button></div>
+      <p class="hint" id="compatHint"></p>
+    </div>
+
+    <div class="card">
+      <h2>4 · 最近七天</h2>
+      <div class="grid7" id="grid7"></div>
+      <p class="hint">任务日按自然日归属，截卡后关闭提交，补交由教师端处理。</p>
+    </div>
+  </div>
+
+  <!-- 教师端 -->
+  <div id="viewTea" class="hidden">
+    <div class="card">
+      <h2>运行操作</h2>
+      <div style="background:#F1EFE8;border-radius:8px;padding:10px;margin-bottom:10px">
+        <label style="margin-top:0">教师口令（公网环境下操作前必须输入）</label>
+        <div class="row">
+          <input type="password" id="teacherKey" placeholder="请输入教师口令" autocomplete="off">
+          <button class="mini" style="margin:0;flex:0 0 auto" onclick="unlockTeacher()">解锁</button>
+        </div>
+        <p class="hint" id="keyHint">未解锁：只能查看，不能修改配置或生成报告。</p>
+      </div>
+      <div class="mode demo" id="capBar" style="margin-bottom:10px">正在检测运行环境…</div>
+      <button class="mini" onclick="runAction('seed')">生成演示数据</button>
+      <button class="mini" onclick="runAction('evaluate')">运行评测</button>
+      <button class="mini" onclick="runAction('report')">生成 PDF 报告</button>
+      <button class="mini" onclick="refresh()">刷新状态</button>
+      <button class="mini" onclick="runAction('reset')">清空提交</button>
+      <div class="log" id="log">等待操作…</div>
+      <div id="reportLinks"></div>
+    </div>
+
+    <div class="card">
+      <h2>任务配置</h2>
+      <label>班级名称</label><input type="text" id="cfgClass">
+      <label>标准文本（老师发的文字＝标准读音）</label><textarea id="cfgMat"></textarea>
+      <label>整句音标（留空则由接口回填）</label><input type="text" id="cfgIpa">
+      <div class="row">
+        <div><label>截卡时间</label><input type="time" id="cfgCutoff"></div>
+        <div><label>材料形式</label><input type="text" id="cfgMode"></div>
+      </div>
+      <div class="row">
+        <div><label>评测模式（0 单词 / 1 句子）</label><input type="number" id="cfgEvalMode" min="0" max="1"></div>
+        <div><label>音频留存（天）</label><input type="number" id="cfgRetention" min="1"></div>
+      </div>
+      <label>学员名单（每行一条：序号 姓名）</label><textarea id="cfgRoster"></textarea>
+      <div class="sep"></div>
+      <h3>真实评测（可选）</h3>
+      <label><input type="checkbox" id="cfgSoeEnabled" style="width:auto;margin-right:6px">启用腾讯云智聆口语评测 SOE</label>
+      <label>SecretId</label><input type="text" id="cfgSoeId" autocomplete="off">
+      <label>SecretKey</label><input type="password" id="cfgSoeKey" autocomplete="new-password" placeholder="留空表示不修改">
+      <p class="hint">启用后：音频会转成 16k/16bit/单声道 wav，调用 TransmitOralProcessWithInit，
+        返回音素级准确度与错音。未启用时为演示模式，PDF 会带「演示数据」水印。
+        密钥只保存在本机 data/config.json。</p>
+      <div style="margin-top:12px"><button class="primary" onclick="saveConfig()">保存配置</button></div>
+    </div>
+
+    <div class="card">
+      <h2>提交记录（最新在前）</h2>
+      <div class="subrow">
+        <div class="qbox"><input type="text" id="subQ" placeholder="按序号 / 姓名 / 日期筛选"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();loadSubs(1)}"></div>
+        <div style="flex:0 0 auto">
+          <label style="margin:0 0 3px">每页</label>
+          <select id="subSize" onchange="changeSize()">
+            <option value="8">8 条</option>
+            <option value="20">20 条</option>
+            <option value="50">50 条</option>
+          </select>
+        </div>
+      </div>
+      <div class="actrow">
+        <button class="mini" onclick="loadSubs(1)">查询</button>
+        <button class="mini" onclick="selectPage(true)">全选本页</button>
+        <button class="mini" onclick="selectPage(false)">清空选择</button>
+        <span class="hint" id="selInfo">已选 0 人</span>
+      </div>
+      <button class="primary" style="width:100%;margin:4px 0 8px" onclick="batchReport()">生成所选学生报告</button>
+      <div id="batchLinks"></div>
+      <div id="subList" class="sublist"><p class="hint">输入教师口令解锁后自动加载。</p></div>
+      <div class="pager">
+        <button class="mini" id="prevBtn" onclick="loadSubs(SUB.page-1)">上一页</button>
+        <span class="hint" id="pageInfo">—</span>
+        <button class="mini" id="nextBtn" onclick="loadSubs(SUB.page+1)">下一页</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="noteCard">
+      <h2>教师批注</h2>
+      <p class="hint" id="noteWho">—</p>
+      <textarea id="noteText" rows="3" placeholder="写给这位学生这次读音的批注，保存后会出现在报告里；留空并保存＝删除"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="mini" style="margin:0" onclick="saveNote()">保存批注</button>
+        <button class="mini" style="margin:0" onclick="closeNote()">关闭</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>七日提交矩阵</h2>
+      <div style="overflow-x:auto"><table id="matrix"></table></div>
+      <p class="hint" id="statLine"></p>
+    </div>
+
+    <div class="card">
+      <h2>数据契约与边界</h2>
+      <div class="log" style="max-height:none;white-space:pre-wrap">POST /api/submit       学员提交（audio 为 base64）
+POST /api/evaluate     批量评测（force=1 可重算）
+POST /api/report       生成报告（days=7；带 student_no 出单人批注单）
+GET  /api/submissions_page  提交记录分页（page/size/q，需口令）
+POST /api/comment      保存教师批注（学员+日期，写进报告）
+GET  /output/xxx.pdf   下载报告
+
+去重键 (task_id, student_no)，重复提交覆盖并留痕
+音频留存到期自动清理；报告仅教师可见
+本系统不读取任何微信聊天记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let S = null, rec = null, stream = null, chunks = [], tick = null, sec = 0, blob = null, source = '';
+const $ = id => document.getElementById(id);
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(()=> t.style.display='none', 2600);
+}
+function log(msg){ $('log').textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg; }
+async function api(path, body){
+  const headers = {};
+  if(body !== undefined) headers['Content-Type'] = 'application/json';
+  const k = sessionStorage.getItem('zaodu_teacher_key');
+  if(k) headers['X-Teacher-Key'] = k;
+  const r = await fetch(path, body === undefined ? {headers} : {
+    method:'POST', headers, body:JSON.stringify(body)
+  });
+  const j = await r.json();
+  if(!j.ok){
+    if(r.status === 401 && $('keyHint')) $('keyHint').textContent = '口令不正确或已失效，请重新输入。';
+    throw new Error(j.error || ('HTTP ' + r.status));
+  }
+  return j;
+}
+function unlockTeacher(){
+  const v = $('teacherKey').value.trim();
+  if(!v){ toast('请输入教师口令'); return; }
+  sessionStorage.setItem('zaodu_teacher_key', v);
+  $('keyHint').textContent = '正在校验口令…';
+  verifyKey();
+}
+async function verifyKey(){
+  try{
+    await api('/api/submissions_page?page=1&size=3');
+    $('keyHint').textContent = '口令校验通过，可以操作。';
+    $('keyHint').style.color = '#0F6E56';
+    loadSubs(1);
+  }catch(e){
+    $('keyHint').textContent = '口令不正确，写操作会被拒绝。';
+    $('keyHint').style.color = '#A32D2D';
+  }
+}
+
+/* ---------- 提交记录：分页 / 试听 / 单人报告 / 批注 ---------- */
+let SUB = {page:1, size:8, total:0, pages:1, items:[]};
+let NOTE = {no:'', tid:'', name:''};
+let SEL = new Set();
+try{ SUB.size = parseInt(localStorage.getItem('zaodu_page_size') || '8') || 8; }catch(e){}
+function changeSize(){
+  SUB.size = parseInt($('subSize').value) || 8;
+  try{ localStorage.setItem('zaodu_page_size', String(SUB.size)); }catch(e){}
+  loadSubs(1);
+}
+function updateSelInfo(){
+  $('selInfo').textContent = '已选 ' + SEL.size + ' 人';
+}
+function toggleSel(no, on){
+  if(on) SEL.add(no); else SEL.delete(no);
+  updateSelInfo();
+}
+function selectPage(on){
+  SUB.items.forEach(it => toggleSel(it.student_no, on));
+  renderSubs();
+}
+async function batchReport(){
+  if(!SEL.size){ toast('请先勾选学生（可跨页累积）'); return; }
+  const nos = [...SEL];
+  try{
+    log('正在批量生成 ' + nos.length + ' 名学生的报告…');
+    const j = await api('/api/report_batch', {days:7, student_nos:nos,
+      base_url:location.origin,
+      sharecode:new URLSearchParams(location.search).get('sharecode') || ''});
+    const links = '<p class="hint" style="margin-top:8px">已生成 ' + j.count + ' 人：'
+      + '<a href="' + j.combined.url + '" target="_blank">合并报告（每人一页）</a>　'
+      + '<a href="' + j.zip.url + '" target="_blank">下载全部单独报告 ZIP</a>'
+      + j.items.map(x => '<br>' + esc(x.student_no) + '：'
+          + '<a href="' + x.url + '" target="_blank">' + esc(x.file) + '</a>').join('')
+      + '</p>';
+    $('batchLinks').innerHTML = links;
+    log('批量完成：' + j.combined.file + ' + ' + j.items.length + ' 份单独报告');
+    window.open(j.combined.url, '_blank');
+  }catch(e){ log('批量生成失败：' + e.message); toast('批量生成失败：' + e.message); }
+}
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function loadSubs(page){
+  if(!sessionStorage.getItem('zaodu_teacher_key')) return;
+  if(!page || page < 1) page = 1;
+  try{
+    const q = encodeURIComponent(($('subQ') ? $('subQ').value.trim() : ''));
+    const j = await api('/api/submissions_page?page=' + page + '&size=' + SUB.size + '&q=' + q);
+    SUB = {page:j.page, size:j.size, total:j.total, pages:j.pages, items:j.items};
+    renderSubs();
+  }catch(e){
+    $('subList').innerHTML = '<p class="hint">加载失败：' + esc(e.message) + '</p>';
+  }
+}
+function renderSubs(){
+  const box = $('subList');
+  if(!SUB.items.length){
+    box.innerHTML = '<p class="hint">没有匹配的提交记录。</p>';
+  }else{
+    box.innerHTML = SUB.items.map((it, i) => {
+      const sc = it.score == null ? '—' : it.score;
+      const when = String(it.submitted_at || '').replace('T', ' ').slice(5, 16);
+      const flag = it.sample ? '<span class="pill no" style="margin-left:6px">示例</span>' : '';
+      const cmt = it.comment ? '<div class="cmt">批注：' + esc(it.comment) + '</div>' : '';
+      const cb = '<input type="checkbox" style="width:auto;flex:0 0 auto;margin:0 6px 0 0" '
+        + (SEL.has(it.student_no) ? 'checked ' : '')
+        + 'onchange="toggleSel(\'' + esc(it.student_no) + '\',this.checked)" title="选择该学生">';
+      return '<div class="subitem">'
+        + '<div class="top">' + cb
+        + '<span class="who">' + esc(it.student_no) + ' ' + esc(it.student_name) + '</span>'
+        + '<span class="when">' + esc(when || it.task_id) + '</span>'
+        + '<span class="sc">' + sc + flag + '</span></div>'
+        + '<div class="acts">'
+        + (it.audio_url ? '<button class="mini" onclick="toggleAudio(' + i + ',this)">▶ 听发音</button>' : '')
+        + '<button class="mini" onclick="oneReport(\'' + esc(it.student_no) + '\')">生成该生报告</button>'
+        + '<button class="mini" onclick="openNote(' + i + ')">' + (it.comment ? '改批注' : '写批注') + '</button>'
+        + '</div>'
+        + (it.audio_url ? '<audio id="au' + i + '" controls preload="none" src="' + it.audio_url + '" class="hidden"></audio>' : '')
+        + cmt
+        + '</div>';
+    }).join('');
+  }
+  $('pageInfo').textContent = '第 ' + SUB.page + ' / ' + SUB.pages + ' 页 ｜ 共 ' + SUB.total + ' 条';
+  $('prevBtn').disabled = SUB.page <= 1;
+  $('nextBtn').disabled = SUB.page >= SUB.pages;
+  updateSelInfo();
+}
+function toggleAudio(i, btn){
+  const a = $('au' + i);
+  if(!a) return;
+  if(a.classList.contains('hidden')){
+    document.querySelectorAll('.sublist audio').forEach(x => { x.pause(); x.classList.add('hidden'); });
+    a.classList.remove('hidden'); a.play().catch(()=>{});
+    btn.textContent = '■ 收起';
+  }else{
+    a.pause(); a.classList.add('hidden'); btn.textContent = '▶ 听发音';
+  }
+}
+function openNote(i){
+  const it = SUB.items[i];
+  if(!it) return;
+  NOTE = {no:it.student_no, tid:it.task_id, name:it.student_name};
+  $('noteWho').textContent = it.student_no + ' ' + it.student_name + ' · ' +
+    String(it.submitted_at || '').replace('T', ' ').slice(0, 16);
+  $('noteText').value = it.comment || '';
+  $('noteCard').classList.remove('hidden');
+  $('noteCard').scrollIntoView({behavior:'smooth', block:'center'});
+  $('noteText').focus();
+}
+function closeNote(){ $('noteCard').classList.add('hidden'); NOTE = {no:'', tid:'', name:''}; }
+async function saveNote(){
+  if(!NOTE.no){ toast('请先选择一条提交记录'); return; }
+  try{
+    await api('/api/comment', {student_no:NOTE.no, task_id:NOTE.tid, text:$('noteText').value});
+    toast($('noteText').value.trim() ? '批注已保存，会写进报告' : '批注已删除');
+    closeNote(); loadSubs(SUB.page);
+  }catch(e){ toast('保存失败：' + e.message); }
+}
+async function oneReport(no){
+  try{
+    log('正在生成 ' + no + ' 的单独报告…');
+    const j = await api('/api/report', {days:7, student_nos:[no],
+      base_url:location.origin,
+      sharecode:new URLSearchParams(location.search).get('sharecode') || ''});
+    log('已生成：' + j.file + '（' + (j.size/1024).toFixed(0) + ' KB）');
+    window.open(j.url, '_blank');
+  }catch(e){ log('生成失败：' + e.message); toast('生成失败：' + e.message); }
+}
+function switchTab(t){
+  $('tabStu').classList.toggle('on', t==='stu'); $('tabTea').classList.toggle('on', t==='tea');
+  $('viewStu').classList.toggle('hidden', t!=='stu'); $('viewTea').classList.toggle('hidden', t!=='tea');
+}
+let MEM_PROFILE = null;
+function normNo(v){ return String(v||'').trim().replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)); }
+function findNo(v){
+  const t = normNo(v);
+  if(!S) return t;
+  let h = S.roster.find(r=>normNo(r.no)===t);
+  if(!h && /^\d+$/.test(t)) h = S.roster.find(r=>/^\d+$/.test(normNo(r.no)) && parseInt(normNo(r.no),10)===parseInt(t,10));
+  return h ? h.no : t;
+}
+function profile(){
+  if(MEM_PROFILE) return MEM_PROFILE;
+  try{ return JSON.parse(localStorage.getItem('zaodu_profile') || 'null'); }catch(e){ return null; }
+}
+function persistProfile(p){
+  MEM_PROFILE = p;
+  try{ localStorage.setItem('zaodu_profile', JSON.stringify(p)); }catch(e){}
+}
+function saveProfile(){
+  const no = findNo($('stuNo').value), name = $('stuName').value.trim();
+  if(!no || !name){ toast('请填写序号和姓名'); return; }
+  const known = S && S.roster.some(r=>normNo(r.no)===normNo(no));
+  if(S && !known && !confirm('序号 ' + no + ' 不在教师名单里，仍要继续吗？')) return;
+  persistProfile({no,name});
+  render(); toast('身份已确认：' + no + ' ' + name);
+}
+function resetProfile(){ MEM_PROFILE = null; try{ localStorage.removeItem('zaodu_profile'); }catch(e){} render(); }
+function speakDemo(){
+  if(!window.speechSynthesis){ toast('浏览器不支持语音合成'); return; }
+  const u = new SpeechSynthesisUtterance(S.config.material); u.lang='en-US'; u.rate=.85;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+function pickMime(){
+  if(!window.MediaRecorder) return '';
+  return ['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(t=>MediaRecorder.isTypeSupported(t)) || '';
+}
+function micHint(msg){
+  $('micNote').textContent = msg;
+  $('micNote').classList.remove('hidden');
+  const b = $('uploadBtn');
+  b.style.borderColor = '#0F6E56'; b.style.color = '#0F6E56'; b.style.fontWeight = '600';
+}
+function focusUpload(){ $('uploadBtn').scrollIntoView({behavior:'smooth',block:'center'}); }
+async function toggleRec(){
+  if(rec && rec.state==='recording'){ stopRec(); return; }
+  if(!window.isSecureContext){
+    micHint('当前不是安全上下文：用局域网 IP 的 http 访问时，浏览器会禁用麦克风。请点下方「选择语音 / 视频文件」上传录音；手机要直接录音需为服务配置 HTTPS。');
+    focusUpload(); return;
+  }
+  if(!navigator.mediaDevices || !window.MediaRecorder){
+    micHint('当前浏览器不支持网页录音，请改用文件上传；手机上可点「手机直接录一段」调起系统录音。');
+    focusUpload(); return;
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime = pickMime();
+    rec = new MediaRecorder(stream, mime ? {mimeType:mime} : undefined);
+    chunks = []; sec = 0;
+    rec.ondataavailable = ev => { if(ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = () => {
+      blob = new Blob(chunks, {type:rec.mimeType || 'audio/webm'}); source = 'record';
+      showPreview(blob, '网页录音 · ' + fmt(sec));
+      stream.getTracks().forEach(t=>t.stop()); rec = null;
+      $('recBtn').textContent = '开始录音'; $('recState').textContent = '录音完成，可试听后提交';
+    };
+    rec.start();
+    $('micNote').classList.add('hidden');
+    $('recBtn').textContent = '停止录音';
+    $('recState').innerHTML = '<span class="recdot"></span>正在录音';
+    $('timer').textContent = '00:00';
+    tick = setInterval(()=>{ sec++; $('timer').textContent = fmt(sec); if(sec>=120) stopRec(); },1000);
+  }catch(err){
+    const name = (err && err.name) || '', emsg = (err && err.message) || '';
+    let msg;
+    if(name==='NotAllowedError' || name==='PermissionDeniedError' || /denied|permission/i.test(emsg)){
+      msg = '麦克风权限被拒绝（' + (name || 'Permission denied') + '）。请点下方「选择语音 / 视频文件」直接上传录音；若仍需网页录音，需在浏览器站点权限里允许麦克风，并用系统浏览器打开，内置预览面板通常不给麦克风权限。';
+    }else if(name==='NotFoundError' || name==='DevicesNotFoundError'){
+      msg = '没有检测到麦克风设备，请改用下方文件上传。';
+    }else if(name==='NotReadableError' || name==='TrackStartError'){
+      msg = '麦克风被其他程序占用或系统未授权给浏览器，请关闭占用程序重试，或改用文件上传。';
+    }else{
+      msg = '录音不可用：' + (emsg || name || '未知原因') + '。请改用下方文件上传。';
+    }
+    micHint(msg);
+    $('recState').textContent = '网页录音不可用，上传文件同样可以提交';
+    $('recBtn').textContent = '重试录音';
+    toast('录音失败，可直接上传语音文件');
+    focusUpload();
+  }
+}
+function stopRec(){ clearInterval(tick); if(rec && rec.state==='recording') rec.stop(); }
+function guessMime(f){
+  if(f.type) return f.type;
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  return {m4a:'audio/mp4',mp3:'audio/mpeg',wav:'audio/wav',aac:'audio/aac',
+    amr:'audio/amr',ogg:'audio/ogg',webm:'audio/webm',mp4:'video/mp4',
+    mov:'video/quicktime'}[ext] || 'audio/mp4';
+}
+function onFile(ev){
+  const f = ev.target.files && ev.target.files[0]; if(!f) return;
+  const okType = /^(audio|video)\//.test(f.type || '') ||
+                 /\.(m4a|mp3|wav|aac|amr|silk|ogg|webm|mp4|mov)$/i.test(f.name);
+  if(!okType){ toast('请选择语音或视频文件'); return; }
+  blob = f; source = 'upload';
+  $('micNote').classList.add('hidden');
+  showPreview(f, f.name + ' · ' + (f.size/1024).toFixed(0) + ' KB');
+}
+function showPreview(b,label){
+  const old = $('preview').src;
+  if(old && old.indexOf('blob:')===0) URL.revokeObjectURL(old);
+  $('preview').src = URL.createObjectURL(b); $('preview').classList.remove('hidden');
+  $('fileLine').textContent = label; $('submitBtn').disabled = false;
+}
+function toDataURL(b){ return new Promise((res,rej)=>{
+  const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = rej; r.readAsDataURL(b);
+}); }
+async function submitAudio(){
+  let p = profile();
+  if(!p){
+    const no = findNo($('stuNo').value), name = $('stuName').value.trim();
+    if(no && name){ persistProfile({no,name}); p = profile(); render(); }
+    else{
+      toast('请先在第 1 步填写序号和姓名，点「确认」后再提交');
+      document.querySelector('#viewStu .card').scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+  }
+  if(!blob){ toast('请先录音或选择文件'); return; }
+  $('submitBtn').disabled = true; $('submitBtn').textContent = '提交中…';
+  try{
+    const data = await toDataURL(blob);
+    const j = await api('/api/submit', {student_no:p.no, student_name:p.name, source,
+      audio:data, mime:guessMime(blob), duration_sec: source==='record' ? sec : null});
+    blob = null; source = '';
+    $('fileLine').textContent = j.replaced ? '已覆盖今日提交' : '提交成功';
+    $('preview').classList.add('hidden'); $('timer').textContent = '00:00';
+    $('recState').textContent = '再录一条可覆盖今日提交';
+    toast(j.replaced ? '已覆盖今日提交' : '提交成功');
+    await refresh();
+  }catch(e){ toast('提交失败：' + e.message); $('submitBtn').disabled = false; }
+  finally{ $('submitBtn').textContent = '提交今日跟读'; }
+}
+function render(){
+  if(!S) return;
+  const c = S.config;
+  let p = profile();
+  if(p){
+    const canon = findNo(p.no);
+    if(canon !== p.no){ persistProfile({no:canon, name:p.name}); p = profile(); }
+  }
+  const roleTag = (typeof MODE !== 'undefined' && MODE === 'stu') ? '【学员端】'
+                : (typeof MODE !== 'undefined' && MODE === 'tea') ? '【教师端】' : '';
+  $('headerSub').textContent = roleTag + c.class_name + ' · ' + c.cutoff + ' 截卡 · 正式版（数据存服务端）';
+  const ib = $('identityBar');
+  if(p){ ib.className = 'mode live'; ib.textContent = '身份已确认：' + p.no + ' · ' + p.name + '　可以提交'; }
+  else { ib.className = 'mode demo'; ib.textContent = '身份未确认 · 请在第 1 步填写序号和姓名并点「确认」'; }
+  const live = S.evaluation_mode === 'soe';
+  $('modeBar').className = 'mode ' + (live ? 'live' : 'demo');
+  $('modeBar').textContent = live
+    ? '真实评测模式：腾讯云 SOE 音素级评测已启用'
+    : '演示模式：得分与错音为可复现示例，不是真实评分。配置 SOE 密钥后自动切换。';
+  $('matText').textContent = c.material || '（未配置材料）';
+  $('matIpa').textContent = c.ipa || '音标待回填';
+  if(S.demo_audio){
+    $('demoAudio').src = '/audio/' + S.demo_audio + '?t=' + Date.now();
+    $('demoAudio').classList.remove('hidden');
+    $('demoHint').textContent = '示范音由本机语音合成生成，请教师核对标准读音与音标。';
+  }else{
+    $('demoAudio').classList.add('hidden');
+    $('demoHint').textContent = '本机未生成示范音，可用下方浏览器语音朗读兜底。';
+  }
+  $('closedNote').classList.toggle('hidden', !S.closed);
+  const ok = !!(navigator.mediaDevices && window.MediaRecorder);
+  if(!window.isSecureContext){
+    $('compatHint').textContent = '当前是非安全上下文（http + 局域网 IP），浏览器会禁用麦克风；请直接用文件上传，或为服务配置 HTTPS。';
+  }else{
+    $('compatHint').textContent = ok
+      ? '网页录音若被拒绝，直接用「选择语音 / 视频文件」上传即可，后续评测与报告链路完全相同。录音优先 mp4（可直转 SOE 所需 wav）；Chrome 下为 webm，真实评测需另配转码。'
+      : '当前环境不支持网页录音，请用文件上传；生产环境建议配微信小程序录音。';
+  }
+  $('profileShow').classList.toggle('hidden', !p);
+  $('profileForm').classList.toggle('hidden', !!p);
+  if(p) $('profileText').textContent = p.no + ' · ' + p.name;
+  const g = $('grid7'); g.innerHTML = '';
+  S.task_ids.forEach(t=>{
+    const done = p && S.submissions.some(x=> x.task_id===t && x.student_no===p.no);
+    const d = document.createElement('div');
+    d.className = 'd' + (done ? ' done' : ''); d.textContent = t.slice(5); g.appendChild(d);
+  });
+  renderTeacher();
+}
+function renderTeacher(){
+  if(!S) return;
+  const c = S.config;
+  const cap = S.capabilities || {};
+  const caps = [
+    cap.pdf ? 'PDF 报告：可生成' : 'PDF 报告：当前环境无渲染引擎，将输出网页版（浏览器「打印 → 存为 PDF」即可）',
+    cap.tts ? '示范音：本机实时合成' : '示范音：使用预置音频',
+    cap.wav_convert ? 'SOE 转码：可用' : 'SOE 转码：不可用（真实评测会报转码失败，需装 ffmpeg）'
+  ];
+  $('capBar').textContent = caps.join(' ｜ ');
+  $('cfgClass').value = c.class_name; $('cfgMat').value = c.material; $('cfgIpa').value = c.ipa || '';
+  $('cfgCutoff').value = c.cutoff; $('cfgMode').value = c.mode || '';
+  $('cfgEvalMode').value = c.eval_mode; $('cfgRetention').value = c.retention_days;
+  $('cfgRoster').value = (c.roster || []).join('\n');
+  $('cfgSoeEnabled').checked = !!c.soe.enabled;
+  $('cfgSoeId').value = c.soe.secret_id || ''; $('cfgSoeKey').value = '';
+  let html = '<thead><tr><th>学员</th>';
+  S.task_ids.forEach(t=> html += '<th>' + t.slice(5) + '</th>');
+  html += '<th>均分</th></tr></thead><tbody>';
+  let total = 0;
+  S.roster.forEach(r=>{
+    html += '<tr><td>' + r.no + ' ' + r.name + '</td>';
+    const sc = [];
+    S.task_ids.forEach(t=>{
+      const x = S.submissions.find(s=> s.task_id===t && s.student_no===r.no);
+      const v = x && x.eval && x.eval.score;
+      if(v === undefined || v === null){ html += '<td><span class="pill no">未交</span></td>'; }
+      else { sc.push(v); total++; html += '<td>' + v + '</td>'; }
+    });
+    html += '<td><b>' + (sc.length ? (sc.reduce((a,b)=>a+b,0)/sc.length).toFixed(1) : '—') + '</b></td></tr>';
+  });
+  $('matrix').innerHTML = html + '</tbody>';
+  $('statLine').textContent = '任务日 ' + S.task_ids[0] + ' 至 ' + S.task_ids[S.task_ids.length-1] +
+    ' · 在册 ' + S.roster.length + ' 人 · 有效提交 ' + total + ' 条';
+  $('reportLinks').innerHTML = S.reports.length
+    ? '<p class="hint" style="margin-top:10px">最近报告：' + S.reports.slice(0,5).map(n=>
+        '<a href="/output/' + encodeURIComponent(n) + '" target="_blank">' + n + '</a>').join('　') + '</p>'
+    : '';
+}
+async function saveConfig(){
+  try{
+    const patch = {
+      class_name:$('cfgClass').value.trim(), material:$('cfgMat').value.trim(),
+      ipa:$('cfgIpa').value.trim(), cutoff:$('cfgCutoff').value || '23:30',
+      mode:$('cfgMode').value.trim(), eval_mode:parseInt($('cfgEvalMode').value)||1,
+      retention_days:parseInt($('cfgRetention').value)||30,
+      roster:$('cfgRoster').value.split('\n').map(x=>x.trim()).filter(Boolean),
+      soe:{enabled:$('cfgSoeEnabled').checked, secret_id:$('cfgSoeId').value.trim(),
+           secret_key:$('cfgSoeKey').value || '******'}
+    };
+    await api('/api/config', patch); await refresh(); log('配置已保存'); toast('配置已保存');
+  }catch(e){ log('保存失败：' + e.message); toast('保存失败：' + e.message); }
+}
+async function runAction(a){
+  const names = {seed:'生成演示数据', evaluate:'运行评测', report:'生成 PDF 报告', reset:'清空提交'};
+  if((a==='seed' || a==='reset') && !confirm(names[a] + '会覆盖或清除当前提交记录，确认继续？')) return;
+  log(names[a] + ' 进行中…');
+  try{
+    let j;
+    if(a==='seed') j = await api('/api/seed', {days:7});
+    else if(a==='evaluate') j = await api('/api/evaluate', {force:true});
+    else if(a==='report') j = await api('/api/report', {
+      days:7,
+      base_url: location.origin,
+      sharecode: new URLSearchParams(location.search).get('sharecode') || ''
+    });
+    else j = await api('/api/reset', {});
+    if(a==='report'){
+      log('报告已生成：' + j.file + '（' + (j.size/1024).toFixed(0) + ' KB' +
+          (j.format === 'html' ? '，网页版' : '') + '）' + (j.note ? ' ' + j.note : ''));
+      window.open(j.url, '_blank');
+    } else if(a==='seed') log(j.note + '，共 ' + j.created + ' 条');
+    else if(a==='evaluate') log('已评测 ' + j.evaluated + ' 条，失败 ' + j.errors + ' 条');
+    else log('提交记录已清空');
+    await refresh();
+  }catch(e){ log(names[a] + '失败：' + e.message); toast(names[a] + '失败：' + e.message); }
+}
+async function refresh(){
+  try{ S = await api('/api/state'); render(); }
+  catch(e){ $('headerSub').textContent = '服务连接失败：' + e.message; toast('无法连接本地服务'); }
+}
+const MODE = new URLSearchParams(location.search).get('mode');
+if(MODE === 'stu' || MODE === 'tea'){
+  switchTab(MODE);
+  $('tabsBar').classList.add('hidden');
+  if(MODE === 'tea') $('identityBar').classList.add('hidden');
+  $('headerSub').textContent = MODE === 'stu' ? '学员端 · 跟读提交' : '教师端 · 需教师口令';
+}
+if(new URLSearchParams(location.search).get('tab') === 'teacher') switchTab('tea');
+$('subSize').value = String(SUB.size);
+if(sessionStorage.getItem('zaodu_teacher_key')) verifyKey();
+refresh();
+</script>
+</body>
+</html>

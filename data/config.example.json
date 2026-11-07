@@ -1,0 +1,34 @@
+{
+  "class_name": "99 班早读群",
+  "cutoff": "23:30",
+  "material": "The early bird catches the worm.",
+  "ipa": "/ði ˈɜːli bɜːd ˈkætʃɪz ðə wɜːm/",
+  "mode": "句子",
+  "language": "en",
+  "eval_mode": 1,
+  "server_type": 0,
+  "retention_days": 30,
+  "roster": [
+    "01 张三",
+    "02 李四",
+    "03 王五",
+    "04 赵六"
+  ],
+  "weights": {
+    "accuracy": 0.6,
+    "fluency": 0.2,
+    "integrity": 0.2
+  },
+  "phoneme_focus": [
+    "/θ/",
+    "/ð/",
+    "/ɜː/",
+    "/æ/"
+  ],
+  "soe": {
+    "enabled": false,
+    "secret_id": "",
+    "secret_key": ""
+  },
+  "base_url": ""
+}

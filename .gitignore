@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+teacher_key.txt
+data/config.json
+data/submissions.json
+data/comments.json
+data/ipa_cache.json
+data/uploads/*
+!data/uploads/.gitkeep
+output/*
+!output/.gitkeep
+nohup.out
