@@ -369,12 +369,13 @@ def build_html(cfg, subs, task_ids, demo_name=None, ipa_map=None, only_nos=None)
             [r for r in st["roster"] if r["no"] in order],
             key=lambda r: order.get(r["no"], 999))
     single = st["roster"][0] if (restricted and len(st["roster"]) == 1) else None
+    day = datetime.now().strftime("%Y%m%d")
     if single:
-        title = f"{single['no']} · {single['name']} 读音批注单"
+        title = f"{single['name']} · {day} 读音纠正"
     elif restricted:
-        title = f"{cfg.get('class_name')} · 批量读音批注单（{len(st['roster'])} 人）"
+        title = f"{cfg.get('class_name')} · {day} 批量读音纠正（{len(st['roster'])} 人）"
     else:
-        title = f"{cfg.get('class_name')} · 早读读音报告"
+        title = f"{cfg.get('class_name')} · {day} 早读读音报告"
     parts = [
         "<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>",
         f"<title>{e(title)}</title><style>{CSS}</style></head><body>",

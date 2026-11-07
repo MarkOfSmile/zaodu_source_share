@@ -5,6 +5,7 @@ import json
 import mimetypes
 import os
 import random
+import re
 import secrets
 import sys
 import traceback
@@ -134,37 +135,49 @@ def normalize_nos(cfg: dict, raw) -> list:
     return out
 
 
+def safe_name(s: str) -> str:
+    """文件名安全化：去掉路径分隔符与非法字符，保留中文。"""
+    return re.sub(r'[\\/:*?"<>|\r\n\t]+', "", str(s or "")).strip() or "未命名"
+
+
+def report_stem(cfg: dict, only_nos: list | None = None,
+                single_no: str | None = None) -> str:
+    """报告文件名主体：单人「张三-20261107读音纠正」，批量/全班同理带日期。"""
+    day = datetime.now().strftime("%Y%m%d")
+    if single_no:
+        names = {r["no"]: r["name"] for r in store.parse_roster(cfg)}
+        who = safe_name(names.get(single_no) or f"学号{single_no}")
+        return f"{who}-{day}读音纠正"
+    if only_nos:
+        return f"批量-{day}读音纠正-{len(only_nos)}人"
+    return f"全班-{day}读音纠正"
+
+
 def render_report(cfg: dict, days: int, only_nos: list | None = None,
-                  single_name: str | None = None) -> dict:
+                  single_no: str | None = None, stem: str | None = None) -> dict:
     """生成一份报告：全班 / 单人 / 多人合并；无 PDF 引擎时降级为 HTML。"""
     tids = store.recent_task_ids(days)
     cfg["_roster_parsed"] = store.parse_roster(cfg)
     subs = store.get_submissions()
     demo = media.demo_audio(cfg.get("material", ""))
     ipa = media.lookup_ipa(cfg.get("material", ""), use_network=False)
+    stem = stem or report_stem(cfg, only_nos, single_no)
     html_text = report.build_html(cfg, subs, tids, demo, ipa,
                                   only_nos=only_nos or None)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if single_name:
-        stem = f"zaodu_student_{single_name}_"
-    elif only_nos:
-        stem = "zaodu_batch_"
-    else:
-        stem = "zaodu_report_"
-    pdf = report.render_pdf(html_text, stem + ts + ".pdf")
+    pdf = report.render_pdf(html_text, stem + ".pdf")
     if not pdf:
         saved_base = cfg.get("base_url", "")
         cfg["base_url"] = ""
         html_text = report.build_html(cfg, subs, tids, demo, ipa,
                                       only_nos=only_nos or None)
         cfg["base_url"] = saved_base
-        name = stem + ts + ".html"
+        name = stem + ".html"
         out = store.OUTPUT / name
         out.write_text(html_text, "utf-8")
-        return {"format": "html", "file": name, "url": "/output/" + name,
+        return {"format": "html", "file": name, "url": "/output/" + quote(name),
                 "size": out.stat().st_size,
                 "note": "当前环境无 PDF 引擎，已生成网页版；浏览器「打印 → 存为 PDF」即可导出。"}
-    return {"format": "pdf", "file": pdf.name, "url": "/output/" + pdf.name,
+    return {"format": "pdf", "file": pdf.name, "url": "/output/" + quote(pdf.name),
             "size": pdf.stat().st_size}
 
 
@@ -427,7 +440,7 @@ class Handler(BaseHTTPRequestHandler):
                 share = str(body.get("sharecode") or "").strip()
                 cfg["link_query"] = ("?sharecode=" + quote(share)) if share else ""
                 res = render_report(cfg, days, nos or None,
-                                    single_name=nos[0] if len(nos) == 1 else None)
+                                    single_no=nos[0] if len(nos) == 1 else None)
                 return self._json({"ok": True, **res})
 
             if path == "/api/report_batch":
@@ -441,24 +454,29 @@ class Handler(BaseHTTPRequestHandler):
                 share = str(body.get("sharecode") or "").strip()
                 cfg["link_query"] = ("?sharecode=" + quote(share)) if share else ""
 
-                combined = render_report(cfg, days, nos)
-                items = []
+                day = datetime.now().strftime("%Y%m%d")
+                names = {r["no"]: r["name"] for r in store.parse_roster(cfg)}
+                combined = render_report(cfg, days, nos,
+                                         stem=f"批量-{day}读音纠正-{len(nos)}人")
+                items, used = [], {}
                 for no in nos:
-                    one = render_report(cfg, days, [no], single_name=no)
-                    items.append({"student_no": no, **one})
-                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                zname = f"zaodu_reports_{ts}.zip"
+                    who = safe_name(names.get(no) or f"学号{no}")
+                    used[who] = used.get(who, 0) + 1
+                    one_stem = (f"{who}-{day}读音纠正"
+                                + (f"-{used[who]}" if used[who] > 1 else ""))
+                    one = render_report(cfg, days, [no], single_no=no, stem=one_stem)
+                    items.append({"student_no": no, "student_name": who, **one})
+                zname = f"批量-{day}读音纠正-{len(nos)}人.zip"
                 zpath = store.OUTPUT / zname
                 with zipfile.ZipFile(zpath, "w", zipfile.ZIP_DEFLATED) as zf:
                     zf.write(store.OUTPUT / combined["file"], combined["file"])
                     for it in items:
                         zf.write(store.OUTPUT / it["file"], it["file"])
-                names = {r["no"]: r["name"] for r in store.parse_roster(cfg)}
                 return self._json({
                     "ok": True, "count": len(nos),
                     "students": [{"no": n, "name": names.get(n, "")} for n in nos],
                     "combined": combined, "items": items,
-                    "zip": {"file": zname, "url": "/output/" + zname,
+                    "zip": {"file": zname, "url": "/output/" + quote(zname),
                             "size": zpath.stat().st_size}})
 
             if path == "/api/seed":

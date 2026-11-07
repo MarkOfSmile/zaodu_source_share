@@ -440,6 +440,7 @@ async function oneReport(no){
 function switchTab(t){
   $('tabStu').classList.toggle('on', t==='stu'); $('tabTea').classList.toggle('on', t==='tea');
   $('viewStu').classList.toggle('hidden', t!=='stu'); $('viewTea').classList.toggle('hidden', t!=='tea');
+  $('identityBar').classList.toggle('hidden', t==='tea');
 }
 let MEM_PROFILE = null;
 function normNo(v){ return String(v||'').trim().replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0)); }
@@ -597,6 +598,7 @@ function render(){
   const ib = $('identityBar');
   if(p){ ib.className = 'mode live'; ib.textContent = '身份已确认：' + p.no + ' · ' + p.name + '　可以提交'; }
   else { ib.className = 'mode demo'; ib.textContent = '身份未确认 · 请在第 1 步填写序号和姓名并点「确认」'; }
+  if(!$('viewTea').classList.contains('hidden')) ib.classList.add('hidden');
   const live = S.evaluation_mode === 'soe';
   $('modeBar').className = 'mode ' + (live ? 'live' : 'demo');
   $('modeBar').textContent = live
@@ -717,7 +719,6 @@ const MODE = new URLSearchParams(location.search).get('mode');
 if(MODE === 'stu' || MODE === 'tea'){
   switchTab(MODE);
   $('tabsBar').classList.add('hidden');
-  if(MODE === 'tea') $('identityBar').classList.add('hidden');
   $('headerSub').textContent = MODE === 'stu' ? '学员端 · 跟读提交' : '教师端 · 需教师口令';
 }
 if(new URLSearchParams(location.search).get('tab') === 'teacher') switchTab('tea');
